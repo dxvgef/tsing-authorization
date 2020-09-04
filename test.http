@@ -1,0 +1,44 @@
+### 查看所有数据
+GET http://localhost:20010/data/
+SECRET: vesystem
+
+########################## 规则管理
+
+### 添加规则
+POST http://localhost:20010/rule/
+Content-Type: application/x-www-form-urlencoded
+SECRET: vesystem
+
+name=test&authorizer={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}&updater={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}
+
+### 添加或替换规则
+PUT http://localhost:20010/rule/dGVzdA
+Content-Type: application/x-www-form-urlencoded
+SECRET: vesystem
+
+authorizer={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}&updater={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}
+
+### 删除规则
+DELETE http://localhost:20010/rule/dGVzdA
+Content-Type: application/x-www-form-urlencoded
+SECRET: vesystem
+
+########################## 授权管理
+
+### 签发授权
+POST http://localhost:20010/auth
+Content-Type: application/x-www-form-urlencoded
+SECRET: vesystem
+
+name=test&payload={"key": "value", "key2": "value2"}
+
+### 验证授权
+GET http://localhost:20010/auth?name=test&token=eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTkyMTQwMTUuNjczMjM3LCJrZXkiOiJ2YWx1ZSIsImtleTIiOiJ2YWx1ZTIifQ.B1Ammy7EGImvFgeVrmGh2ZmPj7wPp8hmm_KOOdU8UfQ
+SECRET: vesystem
+
+### 刷新授权
+PUT http://localhost:20010/auth
+Content-Type: application/x-www-form-urlencoded
+SECRET: vesystem
+
+name=&refresh_token=
