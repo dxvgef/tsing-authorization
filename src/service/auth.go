@@ -4,8 +4,6 @@ import (
 	"errors"
 	"local/global"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/dxvgef/filter/v2"
 	"github.com/dxvgef/tsing"
 )
@@ -94,14 +92,14 @@ func (self *Auth) Verity(ctx *tsing.Context) error {
 // 刷新授权
 func (self *Auth) Refresh(ctx *tsing.Context) error {
 	var (
-		err                                                              error
-		resp                                                             = make(map[string]string)
-		name                                                             string
-		accessTokenStr, refreshTokenStr, newTokenStr, newRefreshTokenStr string
+		err                                                        error
+		resp                                                       = make(map[string]string)
+		name                                                       string
+		tokenStr, refreshTokenStr, newTokenStr, newRefreshTokenStr string
 	)
 	if err = filter.Batch(
 		filter.String(ctx.Post("name"), "name").Require().Set(&name),
-		filter.String(ctx.Post("token"), "token").Require().Set(&accessTokenStr),
+		filter.String(ctx.Post("token"), "token").Require().Set(&tokenStr),
 		filter.String(ctx.Post("refresh_token"), "refresh_token").Require().Set(&refreshTokenStr),
 	); err != nil {
 		resp["error"] = err.Error()
@@ -117,13 +115,36 @@ func (self *Auth) Refresh(ctx *tsing.Context) error {
 	if !ok {
 		return errors.New("规则类型断言失败")
 	}
-	// 使用规则的实例验证access token
-	newRefreshTokenStr, err = rule.Updater.Instance.Sign()
+
+	// 获取token的payload，同时可以证明该token来源合法，只是不验证到期时间
+	payload, exist := rule.Authorizer.Instance.GetPayload(tokenStr)
+	if !exist {
+		resp["error"] = "token无效"
+		return JSON(ctx, 400, &resp)
+	}
+	// 验证刷新token
+	if !rule.Updater.Instance.Verity(refreshTokenStr) {
+		resp["error"] = "refresh_token无效"
+		return JSON(ctx, 400, &resp)
+	}
+
+	// 签发新的token
+	newTokenStr, err = rule.Authorizer.Instance.Sign(payload)
 	if err != nil {
-		log.Err(err).Caller().Send()
-		return err
+		resp["error"] = "签发授权失败：" + err.Error()
+		return JSON(ctx, 400, &resp)
 	}
 	resp["token"] = newTokenStr
-	resp["refresh_token"] = newRefreshTokenStr
+
+	// 签发新的refresh token
+	if rule.Updater.Type != "" {
+		newRefreshTokenStr, err = rule.Updater.Instance.Sign()
+		if err != nil {
+			resp["error"] = "签发刷新授权失败：" + err.Error()
+			return JSON(ctx, 400, &resp)
+		}
+		resp["refresh_token"] = newRefreshTokenStr
+	}
+
 	return JSON(ctx, 200, &resp)
 }

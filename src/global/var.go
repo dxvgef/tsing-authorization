@@ -27,8 +27,9 @@ type Rule struct {
 
 // 授权器实例接口
 type AuthorizerInstance interface {
-	Sign(string) (string, error) // 签发授权
-	Verity(string) bool          // 验证授权
+	Sign(string) (string, error)      // 签发授权
+	Verity(string) bool               // 验证授权
+	GetPayload(string) (string, bool) // 获得payload字符串
 }
 
 // 更新器实例接口

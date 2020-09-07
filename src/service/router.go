@@ -1,18 +1,14 @@
 package service
 
-import (
-	"github.com/dxvgef/tsing"
-)
-
 func setRouter() {
 	// 检查secret
 	router := engine.Group("", CheckSecret)
 
 	// 数据管理
 	var dataHandler Data
-	router.GET("/data/", dataHandler.OutputJSON)
-	router.POST("/data/", dataHandler.LoadAll)
-	router.PUT("/data/", dataHandler.SaveAll)
+	router.GET("/data/", dataHandler.OutputJSON) // 输出所有配置
+	router.POST("/data/", dataHandler.LoadAll)   // 从存储器加载所有配置
+	router.PUT("/data/", dataHandler.SaveAll)    // 将所有配置保存到存储器
 
 	// 规则管理
 	var ruleHandler Rule
@@ -22,12 +18,7 @@ func setRouter() {
 
 	// 授权管理
 	var authHandler Auth
-	// 生成授权
-	router.POST("/auth", authHandler.Sign)
-	// 刷新授权
-	router.PUT("/auth", func(ctx *tsing.Context) error {
-		return nil
-	})
-	// 验证授权
-	router.GET("/auth", authHandler.Verity)
+	router.POST("/auth", authHandler.Sign)   // 生成授权
+	router.PUT("/auth", authHandler.Refresh) // 刷新授权
+	router.GET("/auth", authHandler.Verity)  // 验证授权
 }

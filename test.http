@@ -16,7 +16,7 @@ PUT http://localhost:20010/rule/dGVzdA
 Content-Type: application/x-www-form-urlencoded
 SECRET: vesystem
 
-authorizer={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}&updater={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}
+authorizer={"type":"JWT_HS256","config":"{\"expires\":30,\"secret\":\"123456\"}"}&updater={"type":"JWT_HS256","config":"{\"expires\":60,\"secret\":\"123456\"}"}
 
 ### 删除规则
 DELETE http://localhost:20010/rule/dGVzdA
@@ -33,7 +33,7 @@ SECRET: vesystem
 name=test&payload={"key": "value", "key2": "value2"}
 
 ### 验证授权
-GET http://localhost:20010/auth?name=test&token=eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTkyMTQwMTUuNjczMjM3LCJrZXkiOiJ2YWx1ZSIsImtleTIiOiJ2YWx1ZTIifQ.B1Ammy7EGImvFgeVrmGh2ZmPj7wPp8hmm_KOOdU8UfQ
+GET http://localhost:20010/auth?name=test&token=eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTk0NjAxNzQuNjc3Nzg5LCJrZXkiOiJ2YWx1ZSIsImtleTIiOiJ2YWx1ZTIifQ.2642YoRllLzfYuy3y8AgMw3uavtgTDJFf5YaAn-tEsI
 SECRET: vesystem
 
 ### 刷新授权
@@ -41,4 +41,4 @@ PUT http://localhost:20010/auth
 Content-Type: application/x-www-form-urlencoded
 SECRET: vesystem
 
-name=&refresh_token=
+name=test&refresh_token=eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTk0Njk1NjIuODc1NDExfQ.xx0m2-8_paHMBSEimns7BmzTAFLNVr-KXJuuMb6og7k&token=eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE1OTk0Njk1NjIuODc1MzY3LCJwYXlsb2FkIjoie1wia2V5XCI6IFwidmFsdWVcIiwgXCJrZXkyXCI6IFwidmFsdWUyXCJ9In0.h4gKssl9JNS0cfrUgfxE3Qwu8rDge5uV1cVOT9ldqJQ
