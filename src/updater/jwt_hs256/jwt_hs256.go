@@ -28,14 +28,6 @@ func (receiver *Instance) Sign() (tokenStr string, err error) {
 	if receiver.Expires > 0 {
 		claims.Expires = jwt.NewNumericTime(time.Now().Add(time.Duration(receiver.Expires) * time.Second))
 	}
-	//if payload != "" {
-	//	//claims.Set = make(map[string]interface{}, 1)
-	//	//claims.Set["payload"] = payload
-	//	if err = json.Unmarshal(global.StrToBytes(payload), &claims.Set); err != nil {
-	//		err = errors.New("无法使用JSON编码payload参数值")
-	//		return
-	//	}
-	//}
 	tokenBytes, err = claims.HMACSign(jwt.HS256, global.StrToBytes(receiver.Secret))
 	if err != nil {
 		log.Err(err).Caller().Send()
