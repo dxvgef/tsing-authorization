@@ -6,6 +6,7 @@ import (
 
 	"local/global"
 	"local/updater/jwt_hs256"
+	"local/updater/jwt_rs256"
 
 	"github.com/rs/zerolog/log"
 )
@@ -16,6 +17,13 @@ func Build(name, config string) (global.UpdaterInstance, error) {
 	switch name {
 	case "JWT_HS256":
 		instance, err := jwt_hs256.New(config)
+		if err != nil {
+			log.Err(err).Caller().Send()
+			return nil, err
+		}
+		return instance, nil
+	case "JWT_RS256":
+		instance, err := jwt_rs256.New(config)
 		if err != nil {
 			log.Err(err).Caller().Send()
 			return nil, err
