@@ -10,3 +10,7 @@
 *.bak
 go.sum
 config.local.toml
+public.key
+public.txt
+private.key
+private.txt
