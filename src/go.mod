@@ -34,6 +34,7 @@ require (
 	github.com/prometheus/client_golang v1.7.1 // indirect
 	github.com/rs/zerolog v1.19.0
 	github.com/soheilhy/cmux v0.1.4 // indirect
+	github.com/tjfoc/gmsm v1.3.2
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20200427203606-3cfed13b9966 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect

@@ -25,23 +25,43 @@ type Rule struct {
 	} `json:"updater"`
 }
 
-// 授权器实例接口
-type AuthorizerInstance interface {
-	Sign(string) (string, error)      // 签发授权
-	Verity(string) bool               // 验证授权
-	GetPayload(string) (string, bool) // 获得payload字符串
+// 签名参数
+type SignParams struct {
+	Expires int64
+	Payload string
+	Aud     string
+	IP      string
 }
 
-// 更新器实例接口
+type AuthorizerClaims struct {
+	Expires int64
+	Payload string
+	Aud     string
+	IP      string
+}
+
+type AuthorizerInstance interface {
+	Sign(SignParams) (string, error)            // 签发授权
+	VeritySign(string) (AuthorizerClaims, bool) // 验证签名
+}
+
+// 更新器
+type UpdaterClaims struct {
+	TokenHash string
+	Expires   int64
+	Aud       string
+	IP        string
+}
+
 type UpdaterInstance interface {
-	Sign() (string, error) // 签发授权
-	Verity(string) bool    // 验证授权
+	Sign(string) (string, error)             // 签发授权
+	VeritySign(string) (UpdaterClaims, bool) // 验证签名
 }
 
 // 存储器
 type Storage interface {
-	//LoadAll() error // 从存储器加载所有数据到本地
-	//SaveAll() error // 将本地所有数据保存到存储器
+	// LoadAll() error // 从存储器加载所有数据到本地
+	// SaveAll() error // 将本地所有数据保存到存储器
 
 	LoadAllRule() error      // 从存储器加载所有规则到本地
 	LoadRule([]byte) error   // 从存储器加载单个规则数据

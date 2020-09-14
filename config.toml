@@ -1,0 +1,84 @@
+[service]
+# 连接密码
+secret="123456"
+
+# 调试模式，会将详细的错误信息输出给客户端
+debug=true
+
+# 监听地址，留空表示监听0.0.0.0
+# ip=""
+
+# http监听端口，端口号为0表示不启用http
+http_port=20010
+
+# https监听端口，端口号为0表示不启用https
+# https_port=0
+
+# https 密钥文件路径
+# https_key=""
+
+# https 证书文件路径
+# https_cert=""
+
+# 启用http2支持，需要先启用https
+# http2=false
+
+# 读取超时(秒)
+# read_timeout=10
+
+# 头信息读取超时（秒）
+# read_header_timeout=10
+
+# 响应超时(秒)
+# write_timeout=10
+
+# 空闲超时(秒)
+# idle_timeout=10
+
+# 退出等待超时时间（秒）
+# quit_wait_timeout=5
+
+# 自动恢复panic
+# recover=true
+
+# 记录事件来源信息(影响性能)
+# event_source=true
+
+# 记录跟踪信息(影响性能)
+event_trace=false
+
+# 记录404错误
+event_not_found=false
+
+# 记录405错误
+event_method_not_allowed=false
+
+# 事件中使用短路径
+event_short_path=false
+
+###################### 日志记录参数 ###############################
+[logger]
+# 记录级别，支持以下值，留空则禁用logger，支持: empty(不显示级别)/debug/info/warn/error
+level="debug"
+
+# 日志文件的路径，如果留空则不写文件
+file_path=""
+
+# 日志时间格式(年-月-日 时:分:秒)
+time_format="y-m-d h:i:s"
+
+# 日志编码(console/json)
+encode="console"
+
+# 日志文件的权限，例如755|700|664
+file_mode=664
+
+[storage]
+# 名称
+name = "etcd"
+# 存储器配置json字符串
+config = """
+{
+  "endpoints": ["http://127.0.0.1:2379"],
+  "key_prefix": "/tsing-auth"
+}"""

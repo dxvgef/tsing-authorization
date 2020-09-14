@@ -46,7 +46,7 @@ func New(config string) (*Instance, error) {
 	return &instance, err
 }
 
-func (receiver *Instance) Sign() (tokenStr string, err error) {
+func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	var (
 		claims     jwt.Claims
 		tokenBytes []byte
@@ -54,6 +54,8 @@ func (receiver *Instance) Sign() (tokenStr string, err error) {
 	if receiver.Expires > 0 {
 		claims.Expires = jwt.NewNumericTime(time.Now().Add(time.Duration(receiver.Expires) * time.Second))
 	}
+	claims.Set = make(map[string]interface{}, 1)
+	claims.Set["token_hash"] = tokenHash
 	tokenBytes, err = claims.RSASign(jwt.RS256, receiver.PrivateKey)
 	if err != nil {
 		log.Err(err).Caller().Send()
@@ -63,16 +65,17 @@ func (receiver *Instance) Sign() (tokenStr string, err error) {
 	return
 }
 
-func (receiver *Instance) Verity(tokenStr string) bool {
+func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
+	var claims global.UpdaterClaims
 	// 解密得到claims
-	claims, err := jwt.RSACheck(global.StrToBytes(tokenStr), receiver.PublicKey)
+	jwtClaims, err := jwt.RSACheck(global.StrToBytes(tokenStr), receiver.PublicKey)
 	if err != nil {
 		log.Debug().Err(err).Caller().Send()
-		return false
+		return claims, false
 	}
-	// 验证claims的expires
-	if time.Now().Unix() > claims.Expires.Time().Unix() {
-		return false
-	}
-	return true
+	claims.Expires = jwtClaims.Expires.Time().Unix()
+	claims.TokenHash, _ = jwtClaims.String("token_hash")
+	claims.Aud, _ = jwtClaims.String("aud")
+	claims.IP, _ = jwtClaims.String("ip")
+	return claims, true
 }

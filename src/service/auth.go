@@ -2,7 +2,11 @@ package service
 
 import (
 	"errors"
+	"time"
+
 	"local/global"
+
+	"github.com/dxvgef/gommon/encrypt"
 
 	"github.com/dxvgef/filter/v2"
 	"github.com/dxvgef/tsing"
@@ -14,11 +18,11 @@ type Auth struct{}
 // 签发授权
 func (self *Auth) Sign(ctx *tsing.Context) error {
 	var (
-		err                       error
-		resp                      = make(map[string]string)
-		name                      string
-		payload                   string
-		tokenStr, refreshTokenStr string
+		err                                  error
+		resp                                 = make(map[string]string)
+		name                                 string
+		payload                              string
+		tokenStr, refreshTokenStr, tokenHash string
 	)
 	if err = filter.Batch(
 		filter.String(ctx.Post("name"), "name").Require().Set(&name),
@@ -39,7 +43,7 @@ func (self *Auth) Sign(ctx *tsing.Context) error {
 	}
 
 	// 使用规则的授权器实例生成access token
-	tokenStr, err = rule.Authorizer.Instance.Sign(payload)
+	tokenStr, err = rule.Authorizer.Instance.Sign(global.SignParams{})
 	if err != nil {
 		resp["error"] = "签发授权失败：" + err.Error()
 		return JSON(ctx, 400, &resp)
@@ -48,7 +52,13 @@ func (self *Auth) Sign(ctx *tsing.Context) error {
 
 	// 使用规则的更新器实例生成refresh token
 	if rule.Updater.Type != "" {
-		refreshTokenStr, err = rule.Updater.Instance.Sign()
+		// 计算access token的hash
+		tokenHash, err = encrypt.MD5ByStr(tokenStr)
+		if err != nil {
+			resp["error"] = "Token Hash计算失败：" + err.Error()
+			return JSON(ctx, 400, &resp)
+		}
+		refreshTokenStr, err = rule.Updater.Instance.Sign(tokenHash)
 		if err != nil {
 			resp["error"] = "签发刷新授权失败：" + err.Error()
 			return JSON(ctx, 400, &resp)
@@ -61,13 +71,15 @@ func (self *Auth) Sign(ctx *tsing.Context) error {
 // 验证授权
 func (self *Auth) Verity(ctx *tsing.Context) error {
 	var (
-		err      error
-		resp     = make(map[string]interface{})
-		name     string
+		err  error
+		resp = make(map[string]interface{})
+		name string
+		// scopes   []string
 		tokenStr string
 	)
 	if err = filter.Batch(
 		filter.String(ctx.Query("name"), "name").Require().Set(&name),
+		// filter.String(ctx.Query("scope"), "scope").SetSlice(&scopes, ","),
 		filter.String(ctx.Query("token"), "token").Require().Set(&tokenStr),
 	); err != nil {
 		resp["error"] = err.Error()
@@ -85,17 +97,28 @@ func (self *Auth) Verity(ctx *tsing.Context) error {
 	}
 
 	// 验证token
-	resp["result"] = rule.Authorizer.Instance.Verity(tokenStr)
+	claims, valid := rule.Authorizer.Instance.VeritySign(tokenStr)
+	if !valid {
+		resp["error"] = "签名验证失败"
+		return JSON(ctx, 400, &resp)
+	}
+	if claims.Expires != 0 && claims.Expires <= time.Now().Unix() {
+		resp["error"] = "授权已过期"
+		return JSON(ctx, 400, &resp)
+	}
+
 	return JSON(ctx, 200, &resp)
 }
 
 // 刷新授权
 func (self *Auth) Refresh(ctx *tsing.Context) error {
 	var (
-		err                                                        error
-		resp                                                       = make(map[string]string)
-		name                                                       string
-		tokenStr, refreshTokenStr, newTokenStr, newRefreshTokenStr string
+		err                                                                   error
+		resp                                                                  = make(map[string]string)
+		name                                                                  string
+		tokenStr, refreshTokenStr, newTokenStr, newRefreshTokenStr, tokenHash string
+		valid                                                                 bool
+		refreshClaims                                                         global.UpdaterClaims
 	)
 	if err = filter.Batch(
 		filter.String(ctx.Post("name"), "name").Require().Set(&name),
@@ -116,20 +139,25 @@ func (self *Auth) Refresh(ctx *tsing.Context) error {
 		return errors.New("规则类型断言失败")
 	}
 
-	// 获取token的payload，同时可以证明该token来源合法，只是不验证到期时间
-	payload, exist := rule.Authorizer.Instance.GetPayload(tokenStr)
-	if !exist {
-		resp["error"] = "token无效"
+	// 验证签名并获得claims
+	_, valid = rule.Authorizer.Instance.VeritySign(tokenStr)
+	if !valid {
+		resp["error"] = "授权签名无效"
 		return JSON(ctx, 400, &resp)
 	}
-	// 验证刷新token
-	if !rule.Updater.Instance.Verity(refreshTokenStr) {
-		resp["error"] = "refresh_token无效"
+	// 验证签名并获得刷新token的claims
+	refreshClaims, valid = rule.Updater.Instance.VeritySign(refreshTokenStr)
+	if !valid {
+		resp["error"] = "刷新授权签名无效"
+		return JSON(ctx, 400, &resp)
+	}
+	if refreshClaims.Expires != 0 && refreshClaims.Expires <= time.Now().Unix() {
+		resp["error"] = "刷新授权已过期"
 		return JSON(ctx, 400, &resp)
 	}
 
 	// 签发新的token
-	newTokenStr, err = rule.Authorizer.Instance.Sign(payload)
+	newTokenStr, err = rule.Authorizer.Instance.Sign(global.SignParams{})
 	if err != nil {
 		resp["error"] = "签发授权失败：" + err.Error()
 		return JSON(ctx, 400, &resp)
@@ -138,7 +166,13 @@ func (self *Auth) Refresh(ctx *tsing.Context) error {
 
 	// 签发新的refresh token
 	if rule.Updater.Type != "" {
-		newRefreshTokenStr, err = rule.Updater.Instance.Sign()
+		// 计算access token的hash
+		tokenHash, err = encrypt.MD5ByStr(tokenStr)
+		if err != nil {
+			resp["error"] = "Token Hash计算失败：" + err.Error()
+			return JSON(ctx, 400, &resp)
+		}
+		newRefreshTokenStr, err = rule.Updater.Instance.Sign(tokenHash)
 		if err != nil {
 			resp["error"] = "签发刷新授权失败：" + err.Error()
 			return JSON(ctx, 400, &resp)

@@ -2,8 +2,9 @@ package jwt_hs256
 
 import (
 	"encoding/json"
-	"local/global"
 	"time"
+
+	"local/global"
 
 	"github.com/pascaldekloe/jwt"
 	"github.com/rs/zerolog/log"
@@ -20,7 +21,7 @@ func New(config string) (*Instance, error) {
 	return &instance, err
 }
 
-func (receiver *Instance) Sign() (tokenStr string, err error) {
+func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	var (
 		claims     jwt.Claims
 		tokenBytes []byte
@@ -28,6 +29,8 @@ func (receiver *Instance) Sign() (tokenStr string, err error) {
 	if receiver.Expires > 0 {
 		claims.Expires = jwt.NewNumericTime(time.Now().Add(time.Duration(receiver.Expires) * time.Second))
 	}
+	claims.Set = make(map[string]interface{}, 1)
+	claims.Set["token_hash"] = tokenHash
 	tokenBytes, err = claims.HMACSign(jwt.HS256, global.StrToBytes(receiver.Secret))
 	if err != nil {
 		log.Err(err).Caller().Send()
@@ -37,15 +40,16 @@ func (receiver *Instance) Sign() (tokenStr string, err error) {
 	return
 }
 
-func (receiver *Instance) Verity(tokenStr string) bool {
+func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
+	var claims global.UpdaterClaims
 	// 解密得到claims
-	claims, err := jwt.HMACCheck(global.StrToBytes(tokenStr), global.StrToBytes(receiver.Secret))
+	jwtClaims, err := jwt.HMACCheck(global.StrToBytes(tokenStr), global.StrToBytes(receiver.Secret))
 	if err != nil {
-		return false
+		return claims, false
 	}
-	// 验证claims的expires
-	if time.Now().Unix() > claims.Expires.Time().Unix() {
-		return false
-	}
-	return true
+	claims.Expires = jwtClaims.Expires.Time().Unix()
+	claims.TokenHash, _ = jwtClaims.String("token_hash")
+	claims.Aud, _ = jwtClaims.String("aud")
+	claims.IP, _ = jwtClaims.String("ip")
+	return claims, true
 }
