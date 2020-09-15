@@ -7,6 +7,7 @@ import (
 	hs256 "local/authorizer/jwt_hs256"
 	rs256 "local/authorizer/jwt_rs256"
 	jwtSM2 "local/authorizer/jwt_sm2"
+	jwtSM4 "local/authorizer/jwt_sm4"
 	"local/global"
 
 	"github.com/rs/zerolog/log"
@@ -32,6 +33,13 @@ func Build(name, config string) (global.AuthorizerInstance, error) {
 		return instance, nil
 	case "JWT_SM2":
 		instance, err := jwtSM2.New(config)
+		if err != nil {
+			log.Err(err).Caller().Send()
+			return nil, err
+		}
+		return instance, nil
+	case "JWT_SM4":
+		instance, err := jwtSM4.New(config)
 		if err != nil {
 			log.Err(err).Caller().Send()
 			return nil, err

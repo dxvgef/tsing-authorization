@@ -15,9 +15,9 @@ import (
 )
 
 type Instance struct {
-	Expires   int64           `json:"expires"`
-	SM2Key    *sm2.PrivateKey `json:"-"`
-	SM2KeyStr string          `json:"sm2_key"`
+	Expires       int64           `json:"expires"`
+	PrivateKey    *sm2.PrivateKey `json:"-"`
+	PrivateKeyStr string          `json:"private_key"`
 }
 
 type _Claims struct {
@@ -33,11 +33,11 @@ func New(config string) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
-	if instance.SM2KeyStr == "" {
+	if instance.PrivateKeyStr == "" {
 		return nil, errors.New("private_key不能为空")
 	}
 	// 转换私钥
-	instance.SM2Key, err = base64ToSM2PrivateKey(instance.SM2KeyStr)
+	instance.PrivateKey, err = base64ToSM2PrivateKey(instance.PrivateKeyStr)
 	if err != nil {
 		return nil, errors.New("无效的SM2私钥Base64字符串：" + err.Error())
 	}
@@ -70,7 +70,7 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	token.WriteString(base64.RawURLEncoding.EncodeToString(claimsBytes))
 
 	// 签名
-	signBytes, err = receiver.SM2Key.Sign(rand.Reader, global.StrToBytes(token.String()), nil)
+	signBytes, err = receiver.PrivateKey.Sign(rand.Reader, global.StrToBytes(token.String()), nil)
 	if err != nil {
 		log.Err(err).Caller().Send()
 		return "", err
@@ -78,14 +78,13 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 
 	token.WriteString(".")
 	token.WriteString(base64.RawURLEncoding.EncodeToString(signBytes))
-	log.Debug().Str("token", token.String()).Caller().Send()
 	tokenStr = token.String()
 	return
 }
 
 func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
 	var claims global.UpdaterClaims
-	jwtClaims, err := parseClaims(receiver.SM2Key, tokenStr)
+	jwtClaims, err := parseClaims(receiver.PrivateKey, tokenStr)
 	if err != nil {
 		return claims, false
 	}

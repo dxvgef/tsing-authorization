@@ -24,10 +24,10 @@ type Instance struct {
 }
 
 type _Claims struct {
-	Expires int64  `json:"expires,omitempty"`
-	Aud     string `json:"aud,omitempty"`
-	Payload string `json:"payload,omitempty"`
-	IP      string `json:"ip,omitempty"`
+	Expires   int64  `json:"expires,omitempty"`
+	Aud       string `json:"aud,omitempty"`
+	IP        string `json:"ip,omitempty"`
+	TokenHash string `json:"token_hash,omitempty"`
 }
 
 func New(config string) (*Instance, error) {
@@ -46,8 +46,7 @@ func New(config string) (*Instance, error) {
 	}
 	return &instance, err
 }
-
-func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err error) {
+func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	var (
 		claims      _Claims
 		header      string
@@ -57,15 +56,6 @@ func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err e
 	)
 	if receiver.Expires > 0 {
 		claims.Expires = time.Now().Add(time.Duration(receiver.Expires) * time.Second).Unix()
-	}
-	if params.Payload != "" {
-		claims.Payload = params.Payload
-	}
-	if params.Aud != "" {
-		claims.Aud = params.Aud
-	}
-	if params.IP != "" {
-		claims.IP = params.IP
 	}
 	// header部份
 	header = `{"alg":"SM4","typ":"JWT"}`
@@ -88,19 +78,18 @@ func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err e
 
 	token.WriteString(".")
 	token.WriteString(base64.RawURLEncoding.EncodeToString(signBytes))
-	log.Debug().Str("token", token.String()).Caller().Send()
 	tokenStr = token.String()
 	return
 }
 
-func (receiver *Instance) VeritySign(tokenStr string) (global.AuthorizerClaims, bool) {
-	var claims global.AuthorizerClaims
+func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
+	var claims global.UpdaterClaims
 	jwtClaims, err := parseClaims(receiver.Key, receiver.IV, tokenStr)
 	if err != nil {
 		return claims, false
 	}
 	claims.Expires = jwtClaims.Expires
-	claims.Payload = jwtClaims.Payload
+	claims.TokenHash = jwtClaims.TokenHash
 	claims.Aud = jwtClaims.Aud
 	claims.IP = jwtClaims.IP
 	return claims, true
