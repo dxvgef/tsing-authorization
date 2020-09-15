@@ -16,7 +16,7 @@ func (self *Data) OutputJSON(ctx *tsing.Context) error {
 		ctx.ResponseWriter.WriteHeader(500)
 		return err
 	}
-	ctx.ResponseWriter.Header().Set("Content-AccessType", "application/json; charset=UTF-8")
+	ctx.ResponseWriter.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	ctx.ResponseWriter.WriteHeader(200)
 	if _, err = ctx.ResponseWriter.Write(data); err != nil {
 		log.Err(err).Caller().Send()
