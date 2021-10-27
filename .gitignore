@@ -1,6 +1,6 @@
 .idea
 /bin
-/output
+/out
 *.iml
 .DS_Store
 *.test
