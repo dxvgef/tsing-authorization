@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/coreos/etcd/clientv3"
-	"github.com/rs/zerolog/log"
-
 	"local/global"
+
+	"github.com/rs/zerolog/log"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // 监听变更

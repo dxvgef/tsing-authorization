@@ -3,8 +3,8 @@ package etcd
 import (
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/rs/zerolog/log"
+	"go.etcd.io/etcd/client/v3"
 
 	"local/global"
 )

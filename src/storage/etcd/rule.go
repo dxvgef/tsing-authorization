@@ -3,15 +3,15 @@ package etcd
 import (
 	"context"
 	"encoding/json"
-	"local/authorizer"
-	"local/updater"
 	"strings"
 	"time"
 
+	"local/authorizer"
 	"local/global"
+	"local/updater"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/rs/zerolog/log"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // 从存储器加载规则数据到本地
