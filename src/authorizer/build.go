@@ -4,10 +4,10 @@ import (
 	"errors"
 	"strings"
 
-	hs256 "local/authorizer/jwt_hs256"
-	rs256 "local/authorizer/jwt_rs256"
-	jwtSM2 "local/authorizer/jwt_sm2"
-	jwtSM4 "local/authorizer/jwt_sm4"
+	hs256 "local/authorizer/hs256"
+	rs256 "local/authorizer/rs256"
+	jwtSM2 "local/authorizer/sm2"
+	jwtSM4 "local/authorizer/sm4"
 	"local/global"
 
 	"github.com/rs/zerolog/log"

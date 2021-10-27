@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+
 	"local/authorizer"
 	"local/global"
 	"local/updater"
@@ -79,7 +80,7 @@ func (self *Rule) Put(ctx *tsing.Context) error {
 		authorizerConfig, updaterConfig string
 	)
 	if err = filter.Batch(
-		filter.String(ctx.PathParams.Value("name"), "name").Require().Base64RawURLDecode().Set(&rule.Name),
+		filter.String(ctx.Path("name"), "name").Require().Base64RawURLDecode().Set(&rule.Name),
 		filter.String(ctx.Post("authorizer"), "authorizer").Require().IsJSON().Set(&authorizerConfig),
 		filter.String(ctx.Post("updater"), "updater").IsJSON().Set(&updaterConfig),
 	); err != nil {
@@ -128,7 +129,7 @@ func (self *Rule) Delete(ctx *tsing.Context) error {
 		resp = make(map[string]string)
 		name string
 	)
-	name, err = filter.String(ctx.PathParams.Value("name"), "name").Require().Base64RawURLDecode().String()
+	name, err = filter.String(ctx.Path("name"), "name").Require().Base64RawURLDecode().String()
 	if err != nil {
 		resp["error"] = err.Error()
 		return JSON(ctx, 400, &resp)
@@ -138,7 +139,7 @@ func (self *Rule) Delete(ctx *tsing.Context) error {
 		return Status(ctx, 204)
 	}
 	// 从存储器中删除规则
-	if err = global.StorageInstance.DeleteRule(ctx.PathParams.Value("name")); err != nil {
+	if err = global.StorageInstance.DeleteRule(ctx.Path("name")); err != nil {
 		log.Err(err).Caller().Send()
 		resp["error"] = err.Error()
 		return JSON(ctx, 500, &resp)

@@ -3,12 +3,13 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"local/storage"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"time"
+
+	"local/storage"
 
 	"local/global"
 
@@ -60,7 +61,7 @@ func ConfigService() {
 		config.RootPath = rootPath + "/src/"
 	}
 
-	engine = tsing.New(config)
+	engine = tsing.New(&config)
 
 	// 设置路由
 	setRouter()

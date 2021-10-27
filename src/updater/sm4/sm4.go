@@ -1,4 +1,4 @@
-package jwt_sm4
+package sm4
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tjfoc/gmsm/sm4"
+	sm4lib "github.com/tjfoc/gmsm/sm4"
 
 	"local/global"
 
@@ -139,7 +139,7 @@ func paddingIV(iv string) string {
 }
 
 func sm4Encrypt(key, iv, plainText []byte) ([]byte, error) {
-	block, err := sm4.NewCipher(key)
+	block, err := sm4lib.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func sm4Encrypt(key, iv, plainText []byte) ([]byte, error) {
 }
 
 func sm4Decrypt(key, iv, cipherText []byte) ([]byte, error) {
-	block, err := sm4.NewCipher(key)
+	block, err := sm4lib.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}

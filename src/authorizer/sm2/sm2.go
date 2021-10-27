@@ -1,7 +1,6 @@
-package jwt_sm2
+package sm2
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,21 +9,21 @@ import (
 
 	"local/global"
 
+	"github.com/dxvgef/sm2lib"
 	"github.com/rs/zerolog/log"
-	"github.com/tjfoc/gmsm/sm2"
 )
 
 type Instance struct {
-	Expires       int64           `json:"expires"`
-	PrivateKey    *sm2.PrivateKey `json:"-"`
-	PrivateKeyStr string          `json:"private_key"`
+	Expires       int64              `json:"expires"`
+	PrivateKey    *sm2lib.PrivateKey `json:"-"`
+	PrivateKeyStr string             `json:"private_key"`
 }
 
 type _Claims struct {
-	Expires   int64  `json:"expires,omitempty"`
-	Aud       string `json:"aud,omitempty"`
-	IP        string `json:"ip,omitempty"`
-	TokenHash string `json:"token_hash,omitempty"`
+	Expires int64  `json:"expires,omitempty"`
+	Aud     string `json:"aud,omitempty"`
+	Payload string `json:"payload,omitempty"`
+	IP      string `json:"ip,omitempty"`
 }
 
 func New(config string) (*Instance, error) {
@@ -37,7 +36,7 @@ func New(config string) (*Instance, error) {
 		return nil, errors.New("private_key不能为空")
 	}
 	// 转换私钥
-	instance.PrivateKey, err = base64ToSM2PrivateKey(instance.PrivateKeyStr)
+	err = instance.PrivateKey.FromBase64(base64.RawURLEncoding, global.StrToBytes(instance.PrivateKeyStr), nil)
 	if err != nil {
 		return nil, errors.New("无效的SM2私钥Base64字符串：" + err.Error())
 	}
@@ -45,7 +44,7 @@ func New(config string) (*Instance, error) {
 	return &instance, err
 }
 
-func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
+func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err error) {
 	var (
 		claims      _Claims
 		header      string
@@ -56,7 +55,15 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	if receiver.Expires > 0 {
 		claims.Expires = time.Now().Add(time.Duration(receiver.Expires) * time.Second).Unix()
 	}
-	claims.TokenHash = tokenHash
+	if params.Payload != "" {
+		claims.Payload = params.Payload
+	}
+	if params.Aud != "" {
+		claims.Aud = params.Aud
+	}
+	if params.IP != "" {
+		claims.IP = params.IP
+	}
 	// header部份
 	header = `{"alg":"SM2","typ":"JWT"}`
 	// payload部份
@@ -70,7 +77,7 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	token.WriteString(base64.RawURLEncoding.EncodeToString(claimsBytes))
 
 	// 签名
-	signBytes, err = receiver.PrivateKey.Sign(rand.Reader, global.StrToBytes(token.String()), nil)
+	signBytes, err = receiver.PrivateKey.Sign(global.StrToBytes(token.String()))
 	if err != nil {
 		log.Err(err).Caller().Send()
 		return "", err
@@ -78,42 +85,25 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 
 	token.WriteString(".")
 	token.WriteString(base64.RawURLEncoding.EncodeToString(signBytes))
+	log.Debug().Str("token", token.String()).Caller().Send()
 	tokenStr = token.String()
 	return
 }
 
-func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
-	var claims global.UpdaterClaims
-	jwtClaims, err := parseClaims(receiver.PrivateKey, tokenStr)
+func (receiver *Instance) VeritySign(tokenStr string) (global.AuthorizerClaims, bool) {
+	var claims global.AuthorizerClaims
+	jwtClaims, err := parseClaims(receiver.PrivateKey.GetPublicKey(), tokenStr)
 	if err != nil {
 		return claims, false
 	}
 	claims.Expires = jwtClaims.Expires
-	claims.TokenHash = jwtClaims.TokenHash
+	claims.Payload = jwtClaims.Payload
 	claims.Aud = jwtClaims.Aud
 	claims.IP = jwtClaims.IP
 	return claims, true
 }
 
-// base64转sm2私钥
-func base64ToSM2PrivateKey(privateKeyStr string) (*sm2.PrivateKey, error) {
-	var (
-		err        error
-		decoded    []byte
-		privateKey *sm2.PrivateKey
-	)
-	decoded, err = base64.RawURLEncoding.DecodeString(privateKeyStr)
-	if err != nil {
-		return nil, err
-	}
-	privateKey, err = sm2.ParsePKCS8PrivateKey(decoded, nil)
-	if err != nil {
-		return nil, err
-	}
-	return privateKey, nil
-}
-
-func parseClaims(key *sm2.PrivateKey, tokenStr string) (claims _Claims, err error) {
+func parseClaims(publicKey sm2lib.PublicKey, tokenStr string) (claims _Claims, err error) {
 	var claimsBytes, signBytes []byte
 	arr := strings.Split(tokenStr, ".")
 	if len(arr) != 3 {
@@ -133,7 +123,7 @@ func parseClaims(key *sm2.PrivateKey, tokenStr string) (claims _Claims, err erro
 	}
 	msg := arr[0] + "." + arr[1]
 	// 用私钥验签(也可以用公钥)
-	if !key.Verify(global.StrToBytes(msg), signBytes) {
+	if !publicKey.Verify(global.StrToBytes(msg), signBytes) {
 		err = errors.New("签名无效")
 		log.Err(err).Caller().Send()
 		return

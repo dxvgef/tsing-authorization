@@ -1,4 +1,4 @@
-package jwt_rs256
+package rs256
 
 import (
 	"crypto/rsa"
@@ -47,7 +47,7 @@ func New(config string) (*Instance, error) {
 	return &instance, err
 }
 
-func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err error) {
+func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	var (
 		claims     jwt.Claims
 		tokenBytes []byte
@@ -55,16 +55,8 @@ func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err e
 	if receiver.Expires > 0 {
 		claims.Expires = jwt.NewNumericTime(time.Now().Add(time.Duration(receiver.Expires) * time.Second))
 	}
-	claims.Set = make(map[string]interface{})
-	if params.Payload != "" {
-		claims.Set["payload"] = params.Payload
-	}
-	if params.Aud != "" {
-		claims.Set["aud"] = params.Aud
-	}
-	if params.IP != "" {
-		claims.Set["ip"] = params.IP
-	}
+	claims.Set = make(map[string]interface{}, 1)
+	claims.Set["token_hash"] = tokenHash
 	tokenBytes, err = claims.RSASign(jwt.RS256, receiver.PrivateKey)
 	if err != nil {
 		log.Err(err).Caller().Send()
@@ -74,8 +66,8 @@ func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err e
 	return
 }
 
-func (receiver *Instance) VeritySign(tokenStr string) (global.AuthorizerClaims, bool) {
-	var claims global.AuthorizerClaims
+func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
+	var claims global.UpdaterClaims
 	// 解密得到claims
 	jwtClaims, err := jwt.RSACheck(global.StrToBytes(tokenStr), receiver.PublicKey)
 	if err != nil {
@@ -83,7 +75,7 @@ func (receiver *Instance) VeritySign(tokenStr string) (global.AuthorizerClaims, 
 		return claims, false
 	}
 	claims.Expires = jwtClaims.Expires.Time().Unix()
-	claims.Payload, _ = jwtClaims.String("payload")
+	claims.TokenHash, _ = jwtClaims.String("token_hash")
 	claims.Aud, _ = jwtClaims.String("aud")
 	claims.IP, _ = jwtClaims.String("ip")
 	return claims, true

@@ -1,4 +1,4 @@
-package jwt_hs256
+package hs256
 
 import (
 	"encoding/json"
@@ -21,7 +21,7 @@ func New(config string) (*Instance, error) {
 	return &instance, err
 }
 
-func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
+func (receiver *Instance) Sign(params global.SignParams) (tokenStr string, err error) {
 	var (
 		claims     jwt.Claims
 		tokenBytes []byte
@@ -29,8 +29,16 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	if receiver.Expires > 0 {
 		claims.Expires = jwt.NewNumericTime(time.Now().Add(time.Duration(receiver.Expires) * time.Second))
 	}
-	claims.Set = make(map[string]interface{}, 1)
-	claims.Set["token_hash"] = tokenHash
+	claims.Set = make(map[string]interface{})
+	if params.Payload != "" {
+		claims.Set["payload"] = params.Payload
+	}
+	if params.Aud != "" {
+		claims.Set["aud"] = params.Aud
+	}
+	if params.IP != "" {
+		claims.Set["ip"] = params.IP
+	}
 	tokenBytes, err = claims.HMACSign(jwt.HS256, global.StrToBytes(receiver.Secret))
 	if err != nil {
 		log.Err(err).Caller().Send()
@@ -40,15 +48,15 @@ func (receiver *Instance) Sign(tokenHash string) (tokenStr string, err error) {
 	return
 }
 
-func (receiver *Instance) VeritySign(tokenStr string) (global.UpdaterClaims, bool) {
-	var claims global.UpdaterClaims
+func (receiver *Instance) VeritySign(tokenStr string) (global.AuthorizerClaims, bool) {
+	var claims global.AuthorizerClaims
 	// 解密得到claims
 	jwtClaims, err := jwt.HMACCheck(global.StrToBytes(tokenStr), global.StrToBytes(receiver.Secret))
 	if err != nil {
 		return claims, false
 	}
 	claims.Expires = jwtClaims.Expires.Time().Unix()
-	claims.TokenHash, _ = jwtClaims.String("token_hash")
+	claims.Payload, _ = jwtClaims.String("payload")
 	claims.Aud, _ = jwtClaims.String("aud")
 	claims.IP, _ = jwtClaims.String("ip")
 	return claims, true

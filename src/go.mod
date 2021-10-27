@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/dxvgef/filter/v2 v2.3.0
 	github.com/dxvgef/gommon v0.0.0-20211004155124-06dfde79eee7
+	github.com/dxvgef/sm2lib v1.1.3
 	github.com/dxvgef/tsing v1.6.0
 	github.com/mailru/easyjson v0.7.7
 	github.com/pascaldekloe/jwt v1.10.0

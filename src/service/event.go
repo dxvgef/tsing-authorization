@@ -11,7 +11,7 @@ import (
 )
 
 // tsing的事件处理器
-func eventHandler(event tsing.Event) {
+func eventHandler(event *tsing.Event) {
 	// 先输出状态码
 	event.ResponseWriter.WriteHeader(event.Status)
 
